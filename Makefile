@@ -1,35 +1,60 @@
 # Compiler and flags
 CC = gcc
-CFLAGS = -Wall -Iinclude
+CFLAGS = -Wall -Iinclude -fPIC   # -fPIC needed for shared libs
 
 # Directories
 SRC_DIR = src
 BIN_DIR = bin
 OBJ_DIR = obj
+LIB_DIR = lib
 
 # Files
-TARGET = $(BIN_DIR)/client
-SOURCES = $(SRC_DIR)/main.c $(SRC_DIR)/mystrfunctions.c $(SRC_DIR)/myfilefunctions.c
-OBJECTS = $(SOURCES:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
+STATIC_LIB = $(LIB_DIR)/libmyutils.a
+DYNAMIC_LIB = $(LIB_DIR)/libmyutils.so
+TARGET_STATIC = $(BIN_DIR)/client_static
+TARGET_DYNAMIC = $(BIN_DIR)/client_dynamic
 
-# Default rule
-all: $(TARGET)
+# Sources (adjust as needed)
+UTIL_SOURCES = $(SRC_DIR)/mystrfunctions.c $(SRC_DIR)/myfilefunctions.c
+CLIENT_SOURCE = $(SRC_DIR)/main.c
 
-# Linking rule
-$(TARGET): $(OBJECTS)
-	@mkdir -p $(BIN_DIR)
-	$(CC) $(CFLAGS) -o $@ $^
+# Objects
+UTIL_OBJECTS = $(UTIL_SOURCES:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
+CLIENT_OBJECT = $(CLIENT_SOURCE:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 
-# Compilation rule
+# Default target
+all: $(TARGET_STATIC) $(TARGET_DYNAMIC)
+
+# --- Object file rules ---
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	@mkdir -p $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Clean build files
+# --- Static Library ---
+$(STATIC_LIB): $(UTIL_OBJECTS)
+	@mkdir -p $(LIB_DIR)
+	ar rcs $@ $^
+	ranlib $@
+
+$(TARGET_STATIC): $(CLIENT_OBJECT) $(STATIC_LIB)
+	@mkdir -p $(BIN_DIR)
+	$(CC) $(CFLAGS) -o $@ $(CLIENT_OBJECT) -L$(LIB_DIR) -lmyutils
+
+# --- Shared Library ---
+$(DYNAMIC_LIB): $(UTIL_OBJECTS)
+	@mkdir -p $(LIB_DIR)
+	$(CC) -shared -o $@ $^
+
+$(TARGET_DYNAMIC): $(CLIENT_OBJECT) $(DYNAMIC_LIB)
+	@mkdir -p $(BIN_DIR)
+	$(CC) $(CFLAGS) -o $@ $(CLIENT_OBJECT) -L$(LIB_DIR) -lmyutils
+
+# --- Utility rules ---
 clean:
-	rm -rf $(OBJ_DIR) $(BIN_DIR)
+	rm -rf $(OBJ_DIR) $(BIN_DIR) $(LIB_DIR)
 
-# Run program
-run: $(TARGET)
-	./$(TARGET)
+run_static: $(TARGET_STATIC)
+	./$(TARGET_STATIC)
 
+run_dynamic: $(TARGET_DYNAMIC)
+	LD_LIBRARY_PATH=$(LIB_DIR) ./$(TARGET_DYNAMIC)
