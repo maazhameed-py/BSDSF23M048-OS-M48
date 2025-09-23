@@ -1,6 +1,6 @@
 # Compiler and flags
 CC = gcc
-CFLAGS = -Wall -Iinclude
+CFLAGS = -Wall -Iinclude -fPIC   # -fPIC needed for shared libs
 
 # Directories
 SRC_DIR = src
@@ -9,45 +9,53 @@ OBJ_DIR = obj
 LIB_DIR = lib
 
 # Files
-TARGET = $(BIN_DIR)/client_static
-SOURCES = $(SRC_DIR)/main.c
-OBJECTS = $(SOURCES:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
-LIB_OBJECTS = $(OBJ_DIR)/mystrfunctions.o $(OBJ_DIR)/myfilefunctions.o
-LIB = $(LIB_DIR)/libmyutils.a
+STATIC_LIB = $(LIB_DIR)/libmyutils.a
+DYNAMIC_LIB = $(LIB_DIR)/libmyutils.so
+TARGET_STATIC = $(BIN_DIR)/client_static
+TARGET_DYNAMIC = $(BIN_DIR)/client_dynamic
 
-# Default rule
-all: $(TARGET)
+# Sources (adjust as needed)
+UTIL_SOURCES = $(SRC_DIR)/mystrfunctions.c $(SRC_DIR)/myfilefunctions.c
+CLIENT_SOURCE = $(SRC_DIR)/main.c
 
-# Linking rule for main program
-$(TARGET): $(OBJECTS) $(LIB)
-	@mkdir -p $(BIN_DIR)
-	$(CC) $(CFLAGS) -o $@ $(OBJECTS) -L$(LIB_DIR) -lmyutils
+# Objects
+UTIL_OBJECTS = $(UTIL_SOURCES:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
+CLIENT_OBJECT = $(CLIENT_SOURCE:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 
-# Build static library
-$(LIB): $(LIB_OBJECTS)
-	@mkdir -p $(LIB_DIR)
-	ar rcs $@ $^
-	ranlib $@
+# Default target
+all: $(TARGET_STATIC) $(TARGET_DYNAMIC)
 
-# Compile main object files
+# --- Object file rules ---
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	@mkdir -p $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Compile utility object files
-$(OBJ_DIR)/mystrfunctions.o: $(SRC_DIR)/mystrfunctions.c
-	@mkdir -p $(OBJ_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
+# --- Static Library ---
+$(STATIC_LIB): $(UTIL_OBJECTS)
+	@mkdir -p $(LIB_DIR)
+	ar rcs $@ $^
+	ranlib $@
 
-$(OBJ_DIR)/myfilefunctions.o: $(SRC_DIR)/myfilefunctions.c
-	@mkdir -p $(OBJ_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
+$(TARGET_STATIC): $(CLIENT_OBJECT) $(STATIC_LIB)
+	@mkdir -p $(BIN_DIR)
+	$(CC) $(CFLAGS) -o $@ $(CLIENT_OBJECT) -L$(LIB_DIR) -lmyutils
 
-# Clean build files
+# --- Shared Library ---
+$(DYNAMIC_LIB): $(UTIL_OBJECTS)
+	@mkdir -p $(LIB_DIR)
+	$(CC) -shared -o $@ $^
+
+$(TARGET_DYNAMIC): $(CLIENT_OBJECT) $(DYNAMIC_LIB)
+	@mkdir -p $(BIN_DIR)
+	$(CC) $(CFLAGS) -o $@ $(CLIENT_OBJECT) -L$(LIB_DIR) -lmyutils
+
+# --- Utility rules ---
 clean:
 	rm -rf $(OBJ_DIR) $(BIN_DIR) $(LIB_DIR)
 
-# Run program
-run: $(TARGET)
-	./$(TARGET)
+run_static: $(TARGET_STATIC)
+	./$(TARGET_STATIC)
+
+run_dynamic: $(TARGET_DYNAMIC)
+	LD_LIBRARY_PATH=$(LIB_DIR) ./$(TARGET_DYNAMIC)
 
