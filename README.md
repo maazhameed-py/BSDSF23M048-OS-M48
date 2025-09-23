@@ -31,19 +31,20 @@ This project is a hands-on programming assignment for the Operating Systems cour
 
 ## Project Structure
 
-├── src/ # Source code for library and driver program
-├── include/ # Header files for utility functions
-├── lib/ # Compiled static and dynamic libraries
-├── bin/ # Executable programs
-├── obj/ # Object files
-├── man/man3/ # Man pages for programs
-├── REPORT.md # Analysis and answers to assignment questions
-├── Makefile # Build and installation automation
-└── README.md # Project overview
+```
+├── src/         # Source code for library and driver program
+├── include/     # Header files for utility functions
+├── lib/         # Compiled static and dynamic libraries
+├── bin/         # Executable programs
+├── obj/         # Object files
+├── man/man3/    # Man pages for programs
+├── REPORT.md    # Analysis and answers to assignment questions
+├── Makefile     # Build and installation automation
+└── README.md    # Project overview
+```
 
 
 
----
 
 ## Build and Run
 
@@ -86,6 +87,4 @@ Maaz Hameed
 Email: maazhameed181@gmail.com
 
 
-
-## Project Structure
 
